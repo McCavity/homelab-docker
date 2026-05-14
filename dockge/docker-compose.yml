@@ -1,0 +1,22 @@
+version: "3.8"
+
+# Dockge — Docker-Compose-Stack-Manager mit Web-UI
+# Ablösung für Portainer (kostenlos, Open Source, kein Lizenz-Quark)
+# Web-UI: http://dckapp01:5001
+
+services:
+  dockge:
+    image: louislam/dockge:1
+    container_name: dockge
+    restart: unless-stopped
+    ports:
+      - 5001:5001
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./data:/app/data
+      # Mount des Stack-Verzeichnisses, in dem die anderen Stacks liegen.
+      # Pfad muss innen UND außen identisch sein, damit Dockge `docker compose`
+      # mit den korrekten Bind-Mount-Pfaden ausführen kann.
+      - /root/docker:/root/docker
+    environment:
+      DOCKGE_STACKS_DIR: /root/docker

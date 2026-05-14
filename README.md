@@ -9,6 +9,7 @@
 |---|---|---|
 | [`ghost/`](ghost/) | Ghost CMS (Blog) + MySQL + phpMyAdmin | Ja, geplante Migration zu eigenem VuZ-Stack mittelfristig |
 | [`unifi-poller/`](unifi-poller/) | unifi-poller → InfluxDB → Grafana | Ja, produktiv |
+| [`dockge/`](dockge/) | Dockge — Web-UI für Docker-Stacks (Portainer-Nachfolger) | Ja, produktiv |
 
 ## Setup auf einem neuen Host
 
