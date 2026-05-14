@@ -1,0 +1,13 @@
+# Secrets — niemals committen
+.env
+*/.env
+*.env.local
+
+# Container-Volumes (Bind-Mounts) bleiben auf dem Host
+*/ghost-content/
+*/mysql-data/
+*/portainer_data/
+
+# OS-Krempel
+.DS_Store
+Thumbs.db

@@ -1,0 +1,48 @@
+version: '3.1'
+
+services:
+
+  ghost:
+    image: ghost:5-alpine
+    restart: always
+    ports:
+      - 8080:2368
+    environment:
+      admin__url: https://cmsadmin.hennings-netzwerk.de
+      database__client: mysql
+      database__connection__host: db
+      database__connection__user: root
+      database__connection__password: ${MYSQL_ROOT_PASSWORD}
+      database__connection__database: ghost
+      url: https://www.halfpap.io
+    volumes:
+      - ./ghost-content:/var/lib/ghost/content
+    networks:
+      - ghost
+
+  db:
+    image: mysql:8.0
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+    volumes:
+      - ./mysql-data:/var/lib/mysql
+    networks:
+      - ghost
+
+  # phpmyadmin auf localhost:8088
+  phpmyadmin:
+    image: phpmyadmin:latest
+    restart: always
+    ports:
+      - '8088:80'
+    depends_on:
+      - db
+    environment:
+      PMA_HOST: db
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+    networks:
+      - ghost
+
+networks:
+  ghost:

@@ -1,0 +1,27 @@
+---
+version: '3'
+
+services:
+  unifi-poller:
+    image: golift/unifi-poller:latest
+    container_name: unifi-poller
+    restart: unless-stopped
+    environment:
+      # UniFi Controller
+      UP_UNIFI_DEFAULT_URL: "https://10.10.0.1"
+      UP_UNIFI_DEFAULT_USER: "apiadmin"
+      UP_UNIFI_DEFAULT_PASS: ${UP_UNIFI_DEFAULT_PASS}
+      UP_UNIFI_DEFAULT_VERIFY_SSL: "false"
+      UP_UNIFI_DEFAULT_SAVE_SITES: "true"
+      UP_UNIFI_DEFAULT_SAVE_DPI: "false"
+      # InfluxDB v2
+      UP_INFLUXDB_URL: "http://192.168.178.161:8086"
+      UP_INFLUXDB_ORG: "Smart Home"
+      UP_INFLUXDB_BUCKET: "unifi"
+      UP_INFLUXDB_AUTH_TOKEN: ${UP_INFLUXDB_AUTH_TOKEN}
+      UP_INFLUXDB_V2: "true"
+      # Prometheus deaktivieren
+      UP_PROMETHEUS_DISABLE: "true"
+      # Logging
+      UP_POLLER_DEBUG: "false"
+      UP_POLLER_QUIET: "false"
