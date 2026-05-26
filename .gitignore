@@ -8,6 +8,9 @@
 */mysql-data/
 */portainer_data/
 
+# Git worktrees (lokale Arbeits-Branches)
+.worktrees/
+
 # OS-Krempel
 .DS_Store
 Thumbs.db

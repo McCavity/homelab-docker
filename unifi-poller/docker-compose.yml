@@ -1,10 +1,10 @@
----
-version: '3'
+# `version`-Tag bewusst weggelassen — compose-spec, Docker Compose v2+.
+# HEALTHCHECK ist im Image (`unpoller --health`), kein Override nötig.
 
 services:
-  unifi-poller:
-    image: golift/unifi-poller:latest
-    container_name: unifi-poller
+  unpoller:
+    image: ghcr.io/unpoller/unpoller:latest
+    container_name: unpoller
     restart: unless-stopped
     environment:
       # UniFi Controller

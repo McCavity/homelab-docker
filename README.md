@@ -1,6 +1,6 @@
 # Homelab Docker Stacks
 
-> Letzte Aktualisierung: 2026-05-14
+> Letzte Aktualisierung: 2026-05-26
 > Quelle der Wahrheit für Docker-Compose-Stacks auf `dckapp01` (192.168.178.156).
 
 ## Stacks
@@ -8,7 +8,7 @@
 | Verzeichnis | Beschreibung | Aktiv |
 |---|---|---|
 | [`ghost/`](ghost/) | Ghost CMS (Blog) + MySQL + phpMyAdmin | Ja, geplante Migration zu eigenem VuZ-Stack mittelfristig |
-| [`unifi-poller/`](unifi-poller/) | unifi-poller → InfluxDB → Grafana | Ja, produktiv |
+| [`unifi-poller/`](unifi-poller/) | unpoller (vormals golift/unifi-poller) → InfluxDB → Grafana. Verzeichnisname historisch. | Ja, produktiv |
 | [`dockge/`](dockge/) | Dockge — Web-UI für Docker-Stacks (Portainer-Nachfolger) | Ja, produktiv |
 
 ## Setup auf einem neuen Host
