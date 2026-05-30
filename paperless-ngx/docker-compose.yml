@@ -1,0 +1,69 @@
+services:
+ broker:
+   image: redis:7
+   container_name: broker
+   restart: unless-stopped
+   volumes:
+     - /data/paperless/redis/_data:/data
+
+ db:
+   image: postgres:16
+   container_name: db
+   restart: unless-stopped
+   volumes:
+     - /data/paperless/postgresql/_data:/var/lib/postgresql/data
+   environment:
+     POSTGRES_DB: ${POSTGRES_DB}
+     POSTGRES_USER: ${POSTGRES_USER}
+     POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+
+ webserver:
+   image: ghcr.io/paperless-ngx/paperless-ngx:latest
+   container_name: webserver
+   restart: unless-stopped
+   depends_on:
+     - db
+     - broker
+     - gotenberg
+     - tika
+   ports:
+     - "8001:8000"
+   volumes:
+     - /data/paperless/consume:/usr/src/paperless/consume
+     - /data/paperless/data:/usr/src/paperless/data
+     - /data/paperless/media:/usr/src/paperless/media
+     - /data/paperless/export:/usr/src/paperless/export
+   environment:
+     PAPERLESS_ADMIN_USER: hhalfpap@mac.com
+     PAPERLESS_ADMIN_PASSWORD: ${PAPERLESS_ADMIN_PASSWORD}
+     PAPERLESS_REDIS: redis://broker:6379
+     PAPERLESS_DBHOST: db
+     PAPERLESS_TIKA_ENABLED: 1
+     PAPERLESS_TIKA_GOTENBERG_ENDPOINT: http://gotenberg:3000
+     PAPERLESS_TIKA_ENDPOINT: http://tika:9998
+     PAPERLESS_OCR_LANGUAGE: deu
+     PAPERLESS_OCR_USER_ARGS: '{"continue_on_soft_render_error": true}'
+     PAPERLESS_TIME_ZONE: Europe/Berlin
+     PAPERLESS_CONSUMER_ENABLE_BARCODES: "true"
+     PAPERLESS_CONSUMER_ENABLE_ASN_BARCODE: "true"
+     PAPERLESS_CONSUMER_BARCODE_SCANNER: ZXING
+     PAPERLESS_EMAIL_TASK_CRON: '*/10 * * * *'
+     PAPERLESS_CSRF_TRUSTED_ORIGINS: 'https://archiv.hennings-netzwerk.de,http://192.168.178.168,http://192.168.178.152,http://paperless-ngx.lan,http://paperless-ngx.lan:8001'
+     PAPERLESS_ALLOWED_HOSTS: 'archiv.hennings-netzwerk.de,192.168.178.168,192.168.178.152,paperless-ngx.lan'
+     PAPERLESS_CORS_ALLOWED_HOSTS: 'https://archiv.hennings-netzwerk.de,http://192.168.178.168,http://192.168.178.152,http://paperless-ngx.lan,http://paperless-ngx.lan:8001'
+     PAPERLESS_WORKER_TIMEOUT: "3600"
+     USERMAP_UID: "1002"
+     USERMAP_GID: "1002"
+
+ gotenberg:
+   image: gotenberg/gotenberg:8.8
+   restart: unless-stopped
+   command:
+     - "gotenberg"
+     - "--chromium-disable-javascript=false"
+     - "--chromium-allow-list=.*"
+
+ tika:
+   image: ghcr.io/paperless-ngx/tika:latest
+   container_name: tika
+   restart: unless-stopped
