@@ -17,6 +17,6 @@ services:
       # Mount des Stack-Verzeichnisses, in dem die anderen Stacks liegen.
       # Pfad muss innen UND außen identisch sein, damit Dockge `docker compose`
       # mit den korrekten Bind-Mount-Pfaden ausführen kann.
-      - /root/docker:/root/docker
+      - /root/docker/dckapp01:/root/docker/dckapp01
     environment:
-      DOCKGE_STACKS_DIR: /root/docker
+      DOCKGE_STACKS_DIR: /root/docker/dckapp01
