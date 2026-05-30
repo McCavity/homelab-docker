@@ -1,12 +1,17 @@
 # Secrets — niemals committen
 .env
 */.env
+**/.env
 *.env.local
 
 # Container-Volumes (Bind-Mounts) bleiben auf dem Host
-*/ghost-content/
-*/mysql-data/
-*/portainer_data/
+**/ghost-content/
+**/mysql-data/
+**/portainer_data/
+
+# Lokale Backup-Files (manuelle Pre-Edit-Backups)
+**/*.bak-*
+**/*.yml.bak*
 
 # Git worktrees (lokale Arbeits-Branches)
 .worktrees/

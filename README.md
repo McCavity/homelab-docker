@@ -1,32 +1,32 @@
 # Homelab Docker Stacks
 
-> Letzte Aktualisierung: 2026-05-26
-> Quelle der Wahrheit für Docker-Compose-Stacks auf `dckapp01` (192.168.178.156).
+> Letzte Aktualisierung: 2026-05-30
+> Quelle der Wahrheit für Docker-Compose-Stacks im Homelab. Pro Host ein Subdir, sparse-checkout pro Host.
 
-## Stacks
+## Hosts
 
-| Verzeichnis | Beschreibung | Aktiv |
+| Subdir | Host | Stacks |
 |---|---|---|
-| [`ghost/`](ghost/) | Ghost CMS (Blog) + MySQL + phpMyAdmin | Ja, geplante Migration zu eigenem VuZ-Stack mittelfristig |
-| [`unifi-poller/`](unifi-poller/) | unpoller (vormals golift/unifi-poller) → InfluxDB → Grafana. Verzeichnisname historisch. | Ja, produktiv |
-| [`dockge/`](dockge/) | Dockge — Web-UI für Docker-Stacks (Portainer-Nachfolger) | Ja, produktiv |
+| [`dckapp01/`](dckapp01/) | dckapp01 (192.168.178.156) auf pveapp01 | ghost, dockge, unifi-poller |
+| [`paperless-ngx/`](paperless-ngx/) | paperless-ngx (192.168.178.168) auf pveapp02 | paperless-ngx-Stack (db, broker, webserver, gotenberg, tika) |
 
-## Setup auf einem neuen Host
+## Setup auf einem neuen Host (sparse-checkout)
 
 ```bash
-# 1. Repo klonen
-git clone git@github.com:McCavity/homelab-docker.git ~/docker
-cd ~/docker
+# Beispiel paperless-ngx-Host:
+git clone --filter=blob:none --no-checkout git@github.com:McCavity/homelab-docker.git /home/paperless
+cd /home/paperless
+git sparse-checkout init --cone
+git sparse-checkout set paperless-ngx
+git checkout main
 
-# 2. Pro Stack: .env aus .env.example anlegen und befüllen
-cp ghost/.env.example ghost/.env
-cp unifi-poller/.env.example unifi-poller/.env
-# Editieren, Secrets aus 1Password kopieren
-
-# 3. Stack starten
-cd ghost && docker compose up -d
-cd ../unifi-poller && docker compose up -d
+# Pro Stack: .env aus .env.example, Secrets aus 1Password
+cd paperless-ngx
+cp .env.example .env  # editieren
+docker compose up -d
 ```
+
+Vollständiges Setup-Beispiel pro Host in dessen README.
 
 ## Secret-Management
 
@@ -36,9 +36,11 @@ Compose-Files referenzieren Secrets über Umgebungsvariablen (`${VAR_NAME}`), di
 
 1. `.env`-Files leben lokal auf dem Docker-Host
 2. Werden mit dem Proxmox-LXC-Backup gesichert (NAS, täglich)
-3. Sind zusätzlich in 1Password als Secure Note „homelab-docker .env" hinterlegt (Cloud-synchronisiert, Site-unabhängiger Restore-Pfad)
+3. Sind zusätzlich in 1Password als Secure Note „<host> .env" hinterlegt (Cloud-synchronisiert, Site-unabhängiger Restore-Pfad)
 
 Beim Anlegen oder Ändern einer `.env`-Datei: **1Password-Eintrag mit aktualisieren.**
+
+1Password-Konvention: pro Host ein Eintrag `<host> .env` (z.B. „dckapp01 .env", „paperless-ngx .env").
 
 ## Verwandte Projekte / Hosts
 
