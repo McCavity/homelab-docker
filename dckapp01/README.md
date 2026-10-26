@@ -7,7 +7,8 @@
 | Verzeichnis | Beschreibung | Status |
 |---|---|---|
 | [`unifi-poller/`](unifi-poller/) | unpoller (vormals golift/unifi-poller) → InfluxDB → Grafana | produktiv |
-| [`ghost/`](ghost/) | Ghost CMS (Blog) + MySQL + phpMyAdmin | aktiv, geplante Ablösung durch eigenen VuZ-Stack |
+| [`ghost/`](ghost/) | Ghost CMS (Blog) + MySQL + phpMyAdmin | **stillgelegt 24.10.2026** (`docker compose down`, Archiv auf dem Host unter `/root/archiv/`); Tunnel-Routen `cmsadmin`/`cmsmyadmin` am 26.10. entfernt |
+| [`gokapi/`](gokapi/) | Gokapi — Upload-/Download-Links (upload.halfpap.io) | im Aufbau, erprobt 26.10.2026 |
 | [`dockge/`](dockge/) | Dockge — Web-UI für Docker-Stacks (Portainer-Nachfolger) | produktiv |
 
 ## Setup auf einem neuen Host
