@@ -1,13 +1,13 @@
 # Homelab Docker Stacks
 
-> Letzte Aktualisierung: 2026-05-30
+> Letzte Aktualisierung: 2026-10-26
 > Quelle der Wahrheit für Docker-Compose-Stacks im Homelab. Pro Host ein Subdir, sparse-checkout pro Host.
 
 ## Hosts
 
 | Subdir | Host | Stacks |
 |---|---|---|
-| [`dckapp01/`](dckapp01/) | dckapp01 (192.168.178.156) auf pveapp01 | ghost, dockge, unifi-poller |
+| [`dckapp01/`](dckapp01/) | dckapp01 (192.168.178.156) auf pveapp01 | gokapi, dockge, unifi-poller (ghost stillgelegt) |
 | [`paperless-ngx/`](paperless-ngx/) | paperless-ngx (192.168.178.168) auf pveapp02 | paperless-ngx-Stack (db, broker, webserver, gotenberg, tika) |
 
 ## Setup auf einem neuen Host (sparse-checkout)

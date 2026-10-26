@@ -1,0 +1,3 @@
+# Laufzeitdaten bleiben auf dem Host; config/ enthält Geheimnisse
+data/
+config/
