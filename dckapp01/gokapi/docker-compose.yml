@@ -1,19 +1,20 @@
 # Gokapi — Upload- und Download-Links für die Familie (upload.halfpap.io, über den Cloudflare-Tunnel).
 # Erprobt am 26.10.2026 als Stack gokapi-test: Upload > 100 MB in 45-MB-Stücken durch den Tunnel (Cloudflare Free
 # begrenzt eine Anfrage auf 100 MB), bitgenau angekommen.
-# Offen für den produktiven Aufbau: Datenverzeichnis auf das NAS (NFS) statt lokal, sonst landen die Videos in der
-# nächtlichen vzdump-Sicherung von dckapp01.
+# Daten liegen auf dem NAS (28.10.2026), damit die Videos nicht in der nächtlichen vzdump-Sicherung landen:
+# NAS-Share gokapi -> NFSv3 auf pveapp01:/mnt/gokapi -> Bind-Mount mp0 (backup=0) in CT 106 -> /mnt/gokapi.
+# Host-Port 53843 statt 53842: Auf 53842 lief der Test, dessen Tunnel-Route bis zum Abbau noch dorthin zeigt.
 services:
   gokapi:
     image: f0rc3/gokapi:v2.2.4
     container_name: gokapi
     restart: unless-stopped
     ports:
-      - "53842:53842"
+      - "53843:53842"
     environment:
       - TZ=Europe/Berlin
       - GOKAPI_CHUNK_SIZE_MB=45   # muß unter 100 MB bleiben (Cloudflare Free)
     volumes:
-      - ./data:/app/data          # hochgeladene Dateien
+      - /mnt/gokapi:/app/data     # hochgeladene Dateien (NAS, siehe oben)
       - ./config:/app/config      # config.json + Datenbank, enthält Geheimnisse — nie committen
       - ./custom:/app/custom      # deutsche Oberfläche (custom/public.js)
