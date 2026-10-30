@@ -1,0 +1,8 @@
+[Unit]
+Description=Gokapi: neue Uploads per Telegram melden
+After=network-online.target
+
+[Service]
+Type=oneshot
+EnvironmentFile=/etc/default/gokapi-upload-notify
+ExecStart=/usr/bin/python3 /usr/local/bin/gokapi-upload-notify

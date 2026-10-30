@@ -1,0 +1,111 @@
+#!/usr/bin/env python3
+"""Kopiert Dateien einer Gokapi-Upload-Anfrage direkt vom NAS-Share, mit Klarnamen.
+
+Gokapi legt jede Datei unter der SHA1-Prüfsumme ihres Inhalts ab. Der Klarname steht
+nur in der Gokapi-Datenbank. Dieses Werkzeug liest die Zuordnung (schreibgeschützt,
+per ssh auf dem Gokapi-Host) und kopiert aus dem gemounteten Share — ohne den Umweg
+über Cloudflare-Tunnel und Gokapi.
+
+Beim Kopieren wird die SHA1 mitgerechnet und gegen den Dateinamen der Quelle
+geprüft. Weicht sie ab, wird die Kopie gelöscht und das Werkzeug endet mit Exit 1.
+Vorhandene Zieldateien werden nie überschrieben („Name (2).ext“).
+
+Aufruf:
+    gokapi-holen                     # listet die Anfragen
+    gokapi-holen "Video Papa"        # kopiert nach ~/Downloads/gokapi/Video Papa/
+    gokapi-holen "Video" -z ~/Movies # Teilname genügt, wenn er eindeutig ist
+
+Umgebung: GOKAPI_HOST (Standard dckapp01), GOKAPI_SHARE (Standard /Volumes/gokapi).
+"""
+
+import argparse
+import hashlib
+import json
+import os
+import subprocess
+import sys
+
+HOST = os.environ.get("GOKAPI_HOST", "dckapp01")
+SHARE = os.environ.get("GOKAPI_SHARE", "/Volumes/gokapi")
+DB = "/root/docker/dckapp01/gokapi/config/gokapi.sqlite"
+
+REMOTE = f"""
+import json, sqlite3
+c = sqlite3.connect("file:{DB}?mode=ro", uri=True)
+reqs = {{r[0]: r[1] for r in c.execute("select id, name from UploadRequests")}}
+files = [dict(id=i, name=n, sha1=s, size=b, req=r) for i, n, s, b, r in c.execute(
+    "select Id, Name, SHA1, SizeBytes, UploadRequestId from FileMetaData "
+    "where UploadRequestId != '' and PendingDeletion = 0 order by UploadDate")]
+print(json.dumps(dict(requests=reqs, files=files)))
+"""
+
+
+def fetch():
+    out = subprocess.run(["ssh", HOST, "python3", "-"], input=REMOTE, text=True,
+                         capture_output=True, check=True).stdout
+    return json.loads(out)
+
+
+def free_name(path):
+    if not os.path.exists(path):
+        return path
+    stem, ext = os.path.splitext(path)
+    n = 2
+    while os.path.exists(f"{stem} ({n}){ext}"):
+        n += 1
+    return f"{stem} ({n}){ext}"
+
+
+def copy(src, dst, sha1):
+    h = hashlib.sha1()
+    tmp = dst + ".teil"
+    with open(src, "rb") as fi, open(tmp, "wb") as fo:
+        while block := fi.read(8 * 1024 * 1024):
+            h.update(block)
+            fo.write(block)
+    if h.hexdigest() != sha1:
+        os.remove(tmp)
+        raise RuntimeError(f"SHA1 weicht ab: {os.path.basename(dst)}")
+    os.rename(tmp, dst)
+
+
+def main():
+    ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    ap.add_argument("anfrage", nargs="?", help="Name der Upload-Anfrage (Teilname genügt)")
+    ap.add_argument("-z", "--ziel", default=os.path.expanduser("~/Downloads/gokapi"),
+                    help="Zielverzeichnis; darunter entsteht ein Ordner je Anfrage")
+    args = ap.parse_args()
+
+    data = fetch()
+    reqs, files = data["requests"], data["files"]
+
+    if not args.anfrage:
+        for rid, name in reqs.items():
+            n = sum(1 for f in files if f["req"] == rid)
+            print(f"{name}: {n} Datei(en)")
+        return
+
+    hits = [rid for rid, name in reqs.items() if args.anfrage.lower() in (name or "").lower()]
+    if len(hits) != 1:
+        sys.exit(f"Anfrage „{args.anfrage}“ nicht eindeutig: {[reqs[h] for h in hits] or 'kein Treffer'}")
+    rid = hits[0]
+
+    if not os.path.isdir(SHARE):
+        sys.exit(f"{SHARE} ist nicht gemountet")
+
+    target = os.path.join(args.ziel, reqs[rid] or rid)
+    os.makedirs(target, exist_ok=True)
+    todo = [f for f in files if f["req"] == rid]
+    for f in todo:
+        src = os.path.join(SHARE, f["sha1"])
+        dst = free_name(os.path.join(target, f["name"]))
+        print(f"{f['name']} ({f['size'] / 1024**2:.0f} MB) → {dst}", flush=True)
+        copy(src, dst, f["sha1"])
+    print(f"Fertig: {len(todo)} Datei(en), SHA1 geprüft.")
+
+
+if __name__ == "__main__":
+    try:
+        main()
+    except (RuntimeError, subprocess.CalledProcessError) as e:
+        sys.exit(f"Fehler: {e}")
