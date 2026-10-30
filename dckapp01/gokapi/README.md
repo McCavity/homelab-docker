@@ -20,3 +20,26 @@ Grenzen, vollständige REST-API zur Verwaltung aus einer Session.
   `pveapp01` ist `chattr +i`: Fehlt das NFS beim Booten, scheitern Uploads laut, statt still auf der Hostplatte zu landen.
 - **`config/` bleibt im Stack-Ordner** und ist per `.gitignore` ausgeschlossen. Das Repo ist öffentlich — nie `git add -A`
   auf dem Host.
+
+## Upload-Meldung per Telegram (`notify/`)
+
+Gokapi kennt keine Webhooks. `notify/gokapi-upload-notify.py` liest jede Minute (systemd-Timer) die neuen
+`[upload]`-Zeilen aus `/mnt/gokapi/log.txt` und schickt je Lauf eine Nachricht über die ioBroker-SimpleAPI an
+`telegram.0.communicate.response` — derselbe Bot und Chat wie die übrigen Hausmeldungen.
+
+- Installation auf dem Host: `notify/install.sh` als root. Die SimpleAPI-Adresse steht nur in
+  `/etc/default/gokapi-upload-notify`, nicht im Repo.
+- Der Offset rückt nur nach erfolgreichem Versand vor; scheitert der Versand, kommt die Meldung beim nächsten Lauf.
+- Probe ohne Versand: `python3 /usr/local/bin/gokapi-upload-notify --dry-run`.
+- Gokapis `log.txt` enthält **nur Erfolge**. Abgebrochene Stücke sieht man ausschließlich im cloudflared-Log
+  („Incoming request ended abruptly: context canceled“ auf `/api/uploadrequest/chunk/add`).
+
+## Dateien direkt vom NAS holen (`tools/gokapi-holen`)
+
+Gokapi legt jede Datei unter der **SHA1 ihres Inhalts** ab; der Klarname steht nur in der Datenbank. Der Download über
+die Admin-Seite läuft durch den Tunnel und ist entsprechend langsam. `tools/gokapi-holen "<Anfrage>"` liest die
+Zuordnung schreibgeschützt per ssh und kopiert aus dem gemounteten Share (`/Volumes/gokapi`) mit Klarnamen nach
+`~/Downloads/gokapi/<Anfrage>/`. Die SHA1 wird beim Kopieren geprüft, nichts wird überschrieben.
+
+Den Share am Mac **nur lesend** nutzen (DSM: Benutzer nur „Schreibgeschützt“ auf `gokapi`). Der Finder legt sonst
+`.DS_Store` in Gokapis Datenverzeichnis.
