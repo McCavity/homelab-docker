@@ -31,6 +31,8 @@ Gokapi kennt keine Webhooks. `notify/gokapi-upload-notify.py` liest jede Minute 
   `/etc/default/gokapi-upload-notify`, nicht im Repo.
 - Der Offset rückt nur nach erfolgreichem Versand vor; scheitert der Versand, kommt die Meldung beim nächsten Lauf.
 - Probe ohne Versand: `python3 /usr/local/bin/gokapi-upload-notify --dry-run`.
+- Geprüft 30.10.2026: Ende-zu-Ende durch den Tunnel (Meldung von ioBroker quittiert), Fehlerpfad isoliert
+  (falsche Adresse → Exit 1, Offset bleibt; danach richtige Adresse → Meldung kommt nach).
 - Gokapis `log.txt` enthält **nur Erfolge**. Abgebrochene Stücke sieht man ausschließlich im cloudflared-Log
   („Incoming request ended abruptly: context canceled“ auf `/api/uploadrequest/chunk/add`).
 
@@ -43,3 +45,14 @@ Zuordnung schreibgeschützt per ssh und kopiert aus dem gemounteten Share (`/Vol
 
 Den Share am Mac **nur lesend** nutzen (DSM: Benutzer nur „Schreibgeschützt“ auf `gokapi`). Der Finder legt sonst
 `.DS_Store` in Gokapis Datenverzeichnis.
+
+## Stückgröße für langsame Leitungen
+
+`config/config.json`: **`ChunkSize` 10** (MB) und **`MaxParallelUploads` 1** (seit 30.10.2026, vorher 45/3). Anlaß: Beim
+ersten echten Upload (~1 MB/s Upload beim Absender) brachen 45-MB-Stücke ab; die Seite meldete „Serverfehler“ und
+versuchte es dreimal. Mit 10 MB dauert ein Stück auch bei 600 KB/s unter 20 s, und ein Abbruch kostet nur 10 MB.
+`CHUNK_SIZE` landet in der öffentlichen Seite (`const CHUNK_SIZE = 10 * 1024 * 1024`) — dort prüfen, nicht in der Datei.
+Änderung erst nach `docker restart gokapi` wirksam.
+
+Skript-Zugriffe auf die öffentliche Seite durch den Tunnel brauchen einen User-Agent: Cloudflare antwortet dem
+Python-Standard-Agenten mit 403.
