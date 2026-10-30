@@ -3,8 +3,11 @@
 
 Gokapi legt jede Datei unter der SHA1-Prüfsumme ihres Inhalts ab. Der Klarname steht
 nur in der Gokapi-Datenbank. Dieses Werkzeug liest die Zuordnung (schreibgeschützt,
-per ssh auf dem Gokapi-Host) und kopiert aus dem gemounteten Share — ohne den Umweg
-über Cloudflare-Tunnel und Gokapi.
+per ssh auf dem Gokapi-Host) und kopiert ohne den Umweg über Cloudflare-Tunnel und Gokapi.
+
+Quelle: der gemountete Share, falls vorhanden. Sonst — oder mit `--ssh` — liest es die
+Datei per ssh direkt vom Gokapi-Host (`cat`). Dafür muß der Share am Mac gar nicht
+gemountet sein, und nichts kann versehentlich hineinschreiben.
 
 Beim Kopieren wird die SHA1 mitgerechnet und gegen den Dateinamen der Quelle
 geprüft. Weicht sie ab, wird die Kopie gelöscht und das Werkzeug endet mit Exit 1.
@@ -12,10 +15,13 @@ Vorhandene Zieldateien werden nie überschrieben („Name (2).ext“).
 
 Aufruf:
     gokapi-holen                     # listet die Anfragen
+    gokapi-holen -l                  # listet die Anfragen samt Dateinamen
     gokapi-holen "Video Papa"        # kopiert nach ~/Downloads/gokapi/Video Papa/
     gokapi-holen "Video" -z ~/Movies # Teilname genügt, wenn er eindeutig ist
+    gokapi-holen "Video" --ssh       # per ssh holen, auch wenn der Share gemountet ist
 
-Umgebung: GOKAPI_HOST (Standard dckapp01), GOKAPI_SHARE (Standard /Volumes/gokapi).
+Umgebung: GOKAPI_HOST (Standard dckapp01), GOKAPI_SHARE (Standard /Volumes/gokapi),
+GOKAPI_DATA (Datenverzeichnis auf dem Host, Standard /mnt/gokapi).
 """
 
 import argparse
@@ -27,6 +33,7 @@ import sys
 
 HOST = os.environ.get("GOKAPI_HOST", "dckapp01")
 SHARE = os.environ.get("GOKAPI_SHARE", "/Volumes/gokapi")
+DATA = os.environ.get("GOKAPI_DATA", "/mnt/gokapi")
 DB = "/root/docker/dckapp01/gokapi/config/gokapi.sqlite"
 
 REMOTE = f"""
@@ -56,13 +63,22 @@ def free_name(path):
     return f"{stem} ({n}){ext}"
 
 
-def copy(src, dst, sha1):
+def copy(src, dst, sha1, via_ssh=False):
     h = hashlib.sha1()
     tmp = dst + ".teil"
-    with open(src, "rb") as fi, open(tmp, "wb") as fo:
+    proc = None
+    if via_ssh:
+        proc = subprocess.Popen(["ssh", HOST, "cat", f"{DATA}/{sha1}"], stdout=subprocess.PIPE)
+        fi = proc.stdout
+    else:
+        fi = open(src, "rb")
+    with fi, open(tmp, "wb") as fo:
         while block := fi.read(8 * 1024 * 1024):
             h.update(block)
             fo.write(block)
+    if proc and proc.wait() != 0:
+        os.remove(tmp)
+        raise RuntimeError(f"ssh-Abruf gescheitert (Exit {proc.returncode}): {os.path.basename(dst)}")
     if h.hexdigest() != sha1:
         os.remove(tmp)
         raise RuntimeError(f"SHA1 weicht ab: {os.path.basename(dst)}")
@@ -74,6 +90,8 @@ def main():
     ap.add_argument("anfrage", nargs="?", help="Name der Upload-Anfrage (Teilname genügt)")
     ap.add_argument("-z", "--ziel", default=os.path.expanduser("~/Downloads/gokapi"),
                     help="Zielverzeichnis; darunter entsteht ein Ordner je Anfrage")
+    ap.add_argument("-l", "--liste", action="store_true", help="beim Auflisten auch die Dateinamen zeigen")
+    ap.add_argument("--ssh", action="store_true", help="per ssh vom Gokapi-Host holen statt aus dem Share")
     args = ap.parse_args()
 
     data = fetch()
@@ -81,8 +99,12 @@ def main():
 
     if not args.anfrage:
         for rid, name in reqs.items():
-            n = sum(1 for f in files if f["req"] == rid)
-            print(f"{name}: {n} Datei(en)")
+            own = [f for f in files if f["req"] == rid]
+            print(f"{name}: {len(own)} Datei(en)")
+            if args.liste:
+                for f in own:
+                    mb = f"{f['size'] / 1024**2:.1f}".replace(".", ",")
+                    print(f"  {f['name']}  ({mb} MB)")
         return
 
     hits = [rid for rid, name in reqs.items() if args.anfrage.lower() in (name or "").lower()]
@@ -90,8 +112,8 @@ def main():
         sys.exit(f"Anfrage „{args.anfrage}“ nicht eindeutig: {[reqs[h] for h in hits] or 'kein Treffer'}")
     rid = hits[0]
 
-    if not os.path.isdir(SHARE):
-        sys.exit(f"{SHARE} ist nicht gemountet")
+    via_ssh = args.ssh or not os.path.isdir(SHARE)
+    print(f"Quelle: {'ssh ' + HOST + ':' + DATA if via_ssh else SHARE}")
 
     target = os.path.join(args.ziel, reqs[rid] or rid)
     os.makedirs(target, exist_ok=True)
@@ -100,7 +122,7 @@ def main():
         src = os.path.join(SHARE, f["sha1"])
         dst = free_name(os.path.join(target, f["name"]))
         print(f"{f['name']} ({f['size'] / 1024**2:.0f} MB) → {dst}", flush=True)
-        copy(src, dst, f["sha1"])
+        copy(src, dst, f["sha1"], via_ssh)
     print(f"Fertig: {len(todo)} Datei(en), SHA1 geprüft.")
 
 

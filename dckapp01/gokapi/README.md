@@ -43,8 +43,10 @@ die Admin-Seite läuft durch den Tunnel und ist entsprechend langsam. `tools/gok
 Zuordnung schreibgeschützt per ssh und kopiert aus dem gemounteten Share (`/Volumes/gokapi`) mit Klarnamen nach
 `~/Downloads/gokapi/<Anfrage>/`. Die SHA1 wird beim Kopieren geprüft, nichts wird überschrieben.
 
-Den Share am Mac **nur lesend** nutzen (DSM: Benutzer nur „Schreibgeschützt“ auf `gokapi`). Der Finder legt sonst
-`.DS_Store` in Gokapis Datenverzeichnis.
+`-l` listet die Anfragen samt Dateinamen. Ist der Share nicht gemountet (oder mit `--ssh`), liest das Werkzeug die
+Dateien per `ssh dckapp01 cat /mnt/gokapi/<sha1>` — gemessen 30.10.2026: 3 GB in 62 s. **Das ist der bevorzugte Weg:**
+Der Mac-Benutzer ist auf dem NAS in `administrators`, eine Einschränkung auf „Schreibgeschützt“ würde dort von der
+Gruppenberechtigung überstimmt. Ohne SMB-Mount kann auch kein Finder `.DS_Store` in Gokapis Datenverzeichnis legen.
 
 ## Stückgröße für langsame Leitungen
 
